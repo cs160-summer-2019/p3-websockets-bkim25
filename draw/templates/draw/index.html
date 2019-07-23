@@ -24,12 +24,86 @@
     var canvas = document.getElementById('myCanvas');
     paper.setup(canvas);
     var tool = new paper.Tool();
+    var pathy = new paper.Path();
+    var colors = ["red", "orange", "yellow", "MediumTurquoise", "Navy", "Sienna", "green", "blue", "purple", "pink", "gray", "DarkGreen", "Indigo", "Teal", "Tomato", "SpringGreen"];
+    var uid = Date.now() % 10000;
+    var colorIndex = Math.floor(Math.random()*colors.length);
+    var colorID = colors[colorIndex]; // randlist from https://stackoverflow.com/questions/5915096/get-random-item-from-javascript-array
+    pathy.strokeColor = colorID;
+  
+    var uid_paths = {};
+    //var drawTool = new paper.Tool();
+//     tool.onMouseDown = function(event) {
+//       drawTool.activate();
+//     }
+//     tool.onMouseUp = function(event) {
+//       tool.activate();
+//     }
+     tool.onMouseMove = function(event) { //http://paperjs.org/reference/tool/ path examples
+       pathy.add(event.point);
+       socket.send("{\"x\" : " + event.point.x + ", \"y\" : " + event.point.y + ", \"uid\" : " + uid + ", \"color\" : " + colorIndex + "}" );
+     }
+    
+
+    
 
     // getting the URL (you may want to use for Exercise 3)
     var url = window.location.href;
-
-    // var socket = new WebSocket(
-    //     'wss://<your url here>/ws/draw');
+    var screenSize = url.slice(-5); // get last chars of str https://stackoverflow.com/questions/5873810/how-can-i-get-last-characters-of-a-string
+    
+    var socket = new WebSocket('wss://p3-websockets-bkim25-bkim25744800.codeanyapp.com/ws/draw');
+  
+    socket.onmessage = function(receivedMessage) {
+      
+      var received = JSON.parse(receivedMessage.data);
+      if (received.uid != uid) { //not me
+        
+        if (colorIndex == received.color) {
+          var col;
+          for (col in colors) {
+            if (!uid_paths[col] && col != colors[received.color]) {
+               colorIndex = colors.indexOf(col);
+               colorID = col;
+               pathy.strokeColor = colorID;
+               break;
+            }
+          }
+        }
+        
+        if (!uid_paths[colors[received.color]]) {
+          var tmpPath = new paper.Path();
+          tmpPath.strokeColor = colors[received.color];
+          uid_paths[colors[received.color]] = tmpPath;
+        }
+        if (received.x != -7 && screenSize == "large") {
+            uid_paths[colors[received.color]].add(new paper.Point(received.x, received.y));
+         }
+      }
+    };
+  
+    socket.onclose = function(e) {
+      console.error('Chat socket closed unexpectedly');
+    };
+  
+    window.addEventListener('devicemotion', function(event) {
+      if (event.acceleration.x > 10) {
+        pathy.strokeColor = "white";
+        pathy = new paper.Path();
+        pathy.strokeColor = colorID;
+      }
+    });
+  
+    window.addEventListener('deviceorientation', function(event) {
+      if (event.gamma >= 45) {
+          var col;
+          colorIndex = (colorIndex + 1) % colors.length;
+          colorID = colors[colorIndex];
+          pathy.strokeColor = colorID;
+      }
+    });
+                           
+  
+    //socket.send("{\"x\" : " + -7 + ", \"y\" : " + -7 + ", \"uid\" : " + uid + ", \"color\" : " + colorIndex + "}" );
 
 
 </script>
