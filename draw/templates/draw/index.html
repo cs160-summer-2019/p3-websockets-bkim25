@@ -93,12 +93,14 @@
       }
     });
   
+   var lastRung = Math.floor(Date.now() / 500);
     window.addEventListener('deviceorientation', function(event) {
-      if (event.gamma >= 45) {
+      if ((Math.floor(Date.now() / 500) - lastRung) > 1 && event.gamma >= 65) {
           var col;
           colorIndex = (colorIndex + 1) % colors.length;
           colorID = colors[colorIndex];
           pathy.strokeColor = colorID;
+          lastRung = Math.floor(Date.now() / 500);
       }
     });
                            
